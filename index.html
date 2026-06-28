@@ -215,6 +215,13 @@ body { font-family: -apple-system, 'Hiragino Sans', sans-serif; background: var(
 <!-- 設定 -->
 <div class="page" id="pageSettings">
   <div class="card">
+    <h3>三菱UFJ CSV取込</h3>
+    <p style="font-size:13px;color:var(--text-sub);margin-bottom:12px">三菱UFJダイレクトからダウンロードしたCSVを取り込みます。摘要内容からカテゴリを自動分類します。</p>
+    <button class="btn-export" style="background:var(--primary);color:#fff;border-color:var(--primary)" onclick="document.getElementById('csvFile').click()">CSVファイルを選択</button>
+    <input type="file" id="csvFile" accept=".csv" style="display:none">
+    <div id="csvPreview" style="margin-top:12px"></div>
+  </div>
+  <div class="card">
     <h3>データ管理</h3>
     <button class="btn-export" onclick="exportData()">JSONエクスポート</button>
     <button class="btn-export" style="margin-top:8px" onclick="importData()">JSONインポート</button>
@@ -641,6 +648,110 @@ function clearAllData() {
   if (!confirm('全データを削除しますか？この操作は元に戻せません。')) return;
   entries = []; fixedCosts = []; goals = [];
   save(); refresh();
+}
+
+const CAT_RULES = [
+  { pattern: /給料|給与/, category: '給与', type: 'income' },
+  { pattern: /賞与|ボーナス/, category: '給与', type: 'income' },
+  { pattern: /利息/, category: 'その他', type: 'income' },
+  { pattern: /セブン|ファミ|ローソン|コンビニ|マツモトキヨシ|ドラッグ|スギ薬局/, category: '日用品', type: 'expense' },
+  { pattern: /スーパー|イオン|マルエツ|ライフ|ヨーカドー|食品/, category: '食費', type: 'expense' },
+  { pattern: /ＪＲ|ＳＵＩ|スイカ|パスモ|PASMO|鉄道|バス/, category: '交通費', type: 'expense' },
+  { pattern: /ニコス|クレジット|カ[ーｰ]ド/, category: '固定費', type: 'expense' },
+  { pattern: /ドスパラ|アマゾン|AMAZON|ヨドバシ|ビック/, category: '趣味・機材', type: 'expense' },
+  { pattern: /ネツトフリコミ|振込/, category: '固定費', type: 'expense' },
+  { pattern: /ペイペイ|PayPay/, category: 'その他', type: 'expense' },
+  { pattern: /グ[ーｰ]グル/, category: 'サブスク', type: 'expense' },
+  { pattern: /ニコニコ|フアンテイア|ヴアロラント/, category: '趣味・機材', type: 'expense' },
+  { pattern: /ダイソ[ーｰ]/, category: '日用品', type: 'expense' },
+];
+
+function classifyTransaction(summary, detail) {
+  const text = (summary || '') + (detail || '');
+  for (const rule of CAT_RULES) {
+    if (rule.pattern.test(text)) return { category: rule.category, type: rule.type };
+  }
+  return null;
+}
+
+function parseUFJcsv(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const results = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = [];
+    let cur = '', inQ = false;
+    for (const ch of lines[i]) {
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
+      cur += ch;
+    }
+    cols.push(cur.trim());
+    if (cols.length < 6) continue;
+    const [dateStr, summary, detail, payment, deposit] = cols;
+    const amount = parseInt((payment || deposit || '0').replace(/,/g, ''));
+    if (!amount || !dateStr) continue;
+    const parts = dateStr.split('/');
+    const date = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+    const isIncome = !payment && !!deposit;
+    const classified = classifyTransaction(summary, detail);
+    results.push({
+      id: 'csv' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      type: classified ? classified.type : (isIncome ? 'income' : 'expense'),
+      amount,
+      category: classified ? classified.category : (isIncome ? 'その他' : 'その他'),
+      date,
+      memo: detail || summary || ''
+    });
+  }
+  return results;
+}
+
+document.getElementById('csvFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    let text;
+    try {
+      const decoder = new TextDecoder('shift-jis');
+      text = decoder.decode(ev.target.result);
+    } catch {
+      text = new TextDecoder('utf-8').decode(ev.target.result);
+    }
+    const parsed = parseUFJcsv(text);
+    if (parsed.length === 0) { alert('取引データが見つかりませんでした'); return; }
+    const income = parsed.filter(e => e.type === 'income');
+    const expense = parsed.filter(e => e.type === 'expense');
+    const preview = document.getElementById('csvPreview');
+    preview.innerHTML = `
+      <div class="card" style="background:#f0fdf4;margin:0">
+        <div style="font-weight:700;margin-bottom:8px">${parsed.length}件の取引を検出</div>
+        <div style="font-size:13px;color:var(--text-sub)">
+          収入: ${income.length}件（${fmt(income.reduce((s,e)=>s+e.amount,0))}）<br>
+          支出: ${expense.length}件（${fmt(expense.reduce((s,e)=>s+e.amount,0))}）
+        </div>
+        <div style="margin-top:12px;max-height:200px;overflow-y:auto;font-size:12px">
+          ${parsed.slice(0,10).map(e => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>${e.date} ${e.memo.slice(0,15)}</span><span style="color:${e.type==='income'?'var(--green)':'var(--red)'}">${e.type==='expense'?'-':'+'} ${fmt(e.amount)}</span></div>`).join('')}
+          ${parsed.length > 10 ? '<div style="text-align:center;padding:4px;color:var(--text-sub)">...他 '+(parsed.length-10)+'件</div>' : ''}
+        </div>
+        <button class="btn-submit" style="margin-top:12px" onclick="confirmCsvImport()">取り込む</button>
+      </div>`;
+    window._csvParsed = parsed;
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = '';
+});
+
+function confirmCsvImport() {
+  if (!window._csvParsed) return;
+  const existing = new Set(entries.map(e => e.date + e.amount + e.memo));
+  const newEntries = window._csvParsed.filter(e => !existing.has(e.date + e.amount + e.memo));
+  entries.push(...newEntries);
+  save();
+  document.getElementById('csvPreview').innerHTML = `<div style="color:var(--green);font-weight:600;padding:8px">${newEntries.length}件を取り込みました（重複${window._csvParsed.length - newEntries.length}件スキップ）</div>`;
+  window._csvParsed = null;
+  refresh();
 }
 
 function refresh() { renderHome(); }
