@@ -350,9 +350,36 @@ const SEED_DATA = {
     { id: 's13', type: 'income', amount: 239105, category: '給与', date: '2026-05-20', memo: '5月給与' },
     { id: 's14', type: 'income', amount: 11243, category: 'その他', date: '2026-05-15', memo: '5月その他収入' },
     { id: 's15', type: 'expense', amount: 280863, category: 'その他', date: '2026-05-31', memo: '5月支出合計' },
-    { id: 's16', type: 'income', amount: 236373, category: '給与', date: '2026-06-20', memo: '6月給与' },
-    { id: 's17', type: 'income', amount: 10048, category: 'その他', date: '2026-06-15', memo: '6月その他収入' },
-    { id: 's18', type: 'expense', amount: 184507, category: 'その他', date: '2026-06-29', memo: '6月支出合計' },
+    { id: 's16', type: 'income',  amount: 236373, category: '給与',      date: '2026-06-19', memo: '6月給与' },
+    { id: 's17', type: 'income',  amount: 48,     category: 'その他',    date: '2026-06-25', memo: 'D現金還元' },
+    { id: 's18', type: 'income',  amount: 10000,  category: 'その他',    date: '2026-06-26', memo: 'セブン銀行ATM' },
+    { id: 's19', type: 'expense', amount: 1090,   category: '趣味・機材', date: '2026-06-01', memo: 'ドスパラ' },
+    { id: 's20', type: 'expense', amount: 87153,  category: '固定費',    date: '2026-06-19', memo: 'ミツビシUFJニコス' },
+    { id: 's21', type: 'expense', amount: 440,    category: '趣味・機材', date: '2026-06-19', memo: 'グーグル' },
+    { id: 's22', type: 'expense', amount: 60000,  category: 'その他',    date: '2026-06-19', memo: 'DFACネットフリコミ' },
+    { id: 's23', type: 'expense', amount: 3697,   category: '趣味・機材', date: '2026-06-19', memo: 'カイガイデヒ' },
+    { id: 's24', type: 'expense', amount: 660,    category: '趣味・機材', date: '2026-06-19', memo: 'ニコニコ' },
+    { id: 's25', type: 'expense', amount: 3390,   category: '食費',      date: '2026-06-19', memo: 'ウーバーイーツ' },
+    { id: 's26', type: 'expense', amount: 140,    category: '食費',      date: '2026-06-20', memo: 'ファミリーマート' },
+    { id: 's27', type: 'expense', amount: 490,    category: '趣味・機材', date: '2026-06-20', memo: 'グーグル' },
+    { id: 's28', type: 'expense', amount: 2790,   category: '食費',      date: '2026-06-21', memo: '一蘭 名古屋' },
+    { id: 's29', type: 'expense', amount: 3420,   category: '固定費',    date: '2026-06-23', memo: '水道 半田市' },
+    { id: 's30', type: 'expense', amount: 3554,   category: '食費',      date: '2026-06-23', memo: 'バロー半田' },
+    { id: 's31', type: 'expense', amount: 24,     category: '趣味・機材', date: '2026-06-24', memo: 'カイガイデヒ' },
+    { id: 's32', type: 'expense', amount: 3280,   category: '趣味・機材', date: '2026-06-25', memo: 'アドビ' },
+    { id: 's33', type: 'expense', amount: 1665,   category: '日用品',    date: '2026-06-25', memo: 'スギ薬局' },
+    { id: 's34', type: 'expense', amount: 5780,   category: '固定費',    date: '2026-06-26', memo: '東京海上日動' },
+    { id: 's35', type: 'expense', amount: 910,    category: '日用品',    date: '2026-06-26', memo: 'スギ薬局' },
+    { id: 's36', type: 'expense', amount: 3724,   category: '趣味・機材', date: '2026-06-28', memo: 'カイガイデヒ' },
+    { id: 's37', type: 'expense', amount: 2300,   category: '固定費',    date: '2026-06-29', memo: 'CSS ソンポヒマワリ' },
+    { id: 's38', type: 'expense', amount: 1090,   category: '趣味・機材', date: '2026-06-30', memo: 'ドスパラ' },
+    { id: 's39', type: 'expense', amount: 11000,  category: 'その他',    date: '2026-06-30', memo: 'ゆうちょ' },
+    { id: 's40', type: 'expense', amount: 330,    category: '趣味・機材', date: '2026-06-30', memo: 'DMM' },
+    { id: 's41', type: 'expense', amount: 7900,   category: '趣味・機材', date: '2026-07-01', memo: 'ニコニコプレミアム' },
+    { id: 's42', type: 'expense', amount: 5,      category: '趣味・機材', date: '2026-07-01', memo: 'カイガイデヒ' },
+    { id: 's43', type: 'expense', amount: 660,    category: '趣味・機材', date: '2026-07-01', memo: 'ニコニコ' },
+    { id: 's44', type: 'expense', amount: 1650,   category: '日用品',    date: '2026-07-02', memo: 'ダイソー' },
+    { id: 's45', type: 'expense', amount: 4726,   category: '食費',      date: '2026-07-02', memo: 'バロー半田' },
   ],
   fixedCosts: [],
   goals: []
@@ -366,14 +393,26 @@ function loadOrSeed(key, seedKey) {
   return data;
 }
 
+let entries = loadOrSeed('entries', 'entries');
+let fixedCosts = loadOrSeed('fixed', 'fixedCosts');
+let goals = loadOrSeed('goals', 'goals');
+
 // 2025年12月末残高を初期値としてセット（未設定時のみ）
 if (!localStorage.getItem('kakeibo_initial_balance')) {
   localStorage.setItem('kakeibo_initial_balance', '436128');
 }
+let initialBalance = parseInt(localStorage.getItem('kakeibo_initial_balance') || '436128');
 
-let entries = loadOrSeed('entries', 'entries');
-let fixedCosts = loadOrSeed('fixed', 'fixedCosts');
-let goals = loadOrSeed('goals', 'goals');
+// v2マイグレーション: 6月集計エントリを詳細データに置き換え、7月追加
+if (!localStorage.getItem('kakeibo_migration_v2')) {
+  const OLD_IDS = new Set(['s16','s17','s18']);
+  entries = entries.filter(e => !OLD_IDS.has(e.id));
+  const existingIds = new Set(entries.map(e => e.id));
+  const newEntries = SEED_DATA.entries.filter(e => !existingIds.has(e.id) && parseInt(e.id.slice(1)) >= 16);
+  entries.push(...newEntries);
+  save();
+  localStorage.setItem('kakeibo_migration_v2', '1');
+}
 let currentType = 'expense';
 let editType = 'expense';
 let editingId = null;
@@ -423,14 +462,13 @@ function showPage(name, btn) {
 }
 
 function saveInitialBalance() {
-  const val = parseInt(document.getElementById('initialBalance').value) || 0;
-  localStorage.setItem('kakeibo_initial_balance', val);
+  initialBalance = parseInt(document.getElementById('initialBalance').value) || 0;
+  localStorage.setItem('kakeibo_initial_balance', initialBalance);
   alert('初期残高を保存しました');
   renderHome();
 }
 
 function calcCumulative(untilYear, untilMonth) {
-  const initialBalance = parseInt(localStorage.getItem('kakeibo_initial_balance') || '0');
   let total = initialBalance;
   entries.forEach(e => {
     const d = new Date(e.date);
