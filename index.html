@@ -147,7 +147,8 @@ body { font-family: -apple-system, 'Hiragino Sans', sans-serif; background: var(
   <div class="summary-cards">
     <div class="summary-card"><div class="label">収入</div><div class="amount income" id="totalIncome">¥0</div></div>
     <div class="summary-card"><div class="label">支出</div><div class="amount expense" id="totalExpense">¥0</div></div>
-    <div class="summary-card balance-card"><div class="label">収支</div><div class="amount" id="totalBalance">¥0</div></div>
+    <div class="summary-card"><div class="label">当月収支</div><div class="amount" id="totalBalance">¥0</div></div>
+    <div class="summary-card"><div class="label">累計残高</div><div class="amount" id="totalCumulative">¥0</div></div>
   </div>
   <div class="card">
     <h3>カテゴリ別支出</h3>
@@ -214,6 +215,14 @@ body { font-family: -apple-system, 'Hiragino Sans', sans-serif; background: var(
 
 <!-- 設定 -->
 <div class="page" id="pageSettings">
+  <div class="card">
+    <h3>初期残高設定</h3>
+    <p style="font-size:13px;color:var(--text-sub);margin-bottom:12px">データ取込前（2025年12月末）の口座残高を入力してください。</p>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input type="number" id="initialBalance" inputmode="numeric" placeholder="0" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:16px">
+      <button class="btn-submit" style="width:auto;padding:10px 16px;margin:0" onclick="saveInitialBalance()">保存</button>
+    </div>
+  </div>
   <div class="card">
     <h3>三菱UFJ CSV取込</h3>
     <p style="font-size:13px;color:var(--text-sub);margin-bottom:12px">三菱UFJダイレクトからダウンロードしたCSVを取り込みます。摘要内容からカテゴリを自動分類します。</p>
@@ -352,6 +361,11 @@ function loadOrSeed(key, seedKey) {
   return data;
 }
 
+// 2025年12月末残高を初期値としてセット（未設定時のみ）
+if (!localStorage.getItem('kakeibo_initial_balance')) {
+  localStorage.setItem('kakeibo_initial_balance', '436128');
+}
+
 let entries = loadOrSeed('entries', 'entries');
 let fixedCosts = loadOrSeed('fixed', 'fixedCosts');
 let goals = loadOrSeed('goals', 'goals');
@@ -397,6 +411,33 @@ function showPage(name, btn) {
   if (name === 'History') renderHistory();
   if (name === 'Fixed') renderFixed();
   if (name === 'Input') resetInputForm();
+  if (name === 'Settings') {
+    const v = localStorage.getItem('kakeibo_initial_balance');
+    if (v) document.getElementById('initialBalance').value = v;
+  }
+}
+
+function saveInitialBalance() {
+  const val = parseInt(document.getElementById('initialBalance').value) || 0;
+  localStorage.setItem('kakeibo_initial_balance', val);
+  alert('初期残高を保存しました');
+  renderHome();
+}
+
+function calcCumulative(untilYear, untilMonth) {
+  const initialBalance = parseInt(localStorage.getItem('kakeibo_initial_balance') || '0');
+  let total = initialBalance;
+  entries.forEach(e => {
+    const d = new Date(e.date);
+    const y = d.getFullYear(), m = d.getMonth();
+    if (y < untilYear || (y === untilYear && m <= untilMonth)) {
+      total += e.type === 'income' ? e.amount : -e.amount;
+    }
+  });
+  // 固定費は表示月分だけ引く（毎月同額と仮定）
+  const months = (untilYear - 2026) * 12 + untilMonth + 1;
+  total -= fixedCosts.reduce((s, f) => s + f.amount, 0) * months;
+  return total;
 }
 
 function renderHome() {
@@ -413,6 +454,11 @@ function renderHome() {
   const balEl = document.getElementById('totalBalance');
   balEl.textContent = fmt(bal);
   balEl.style.color = bal >= 0 ? 'var(--green)' : 'var(--red)';
+
+  const cumulative = calcCumulative(viewYear, viewMonth);
+  const cumEl = document.getElementById('totalCumulative');
+  cumEl.textContent = fmt(cumulative);
+  cumEl.style.color = cumulative >= 0 ? 'var(--green)' : 'var(--red)';
 
   const byCat = {};
   me.filter(e => e.type === 'expense').forEach(e => { byCat[e.category] = (byCat[e.category] || 0) + e.amount; });
